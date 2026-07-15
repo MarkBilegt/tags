@@ -1,0 +1,22 @@
+{
+  "Version": 1,
+  "CacheSeconds": 15,
+  "DatabaseConfigPath": "csgo/cfg/MatchZy/database.json",
+  "RankColor": "{Gold}",
+  "MessageColor": "{White}",
+  "DeadPrefix": "{Grey}*DEAD* ",
+  "SpectatorPrefix": "{LightPurple}(SPEC) ",
+  "TerroristPrefix": "{Gold}(T) ",
+  "CounterTerroristPrefix": "{LightBlue}(CT) ",
+  "OwnerColor": "{Red}",
+  "ManagerColor": "{Gold}",
+  "HeadAdminColor": "{Purple}",
+  "VipColor": "{Lime}",
+  "AdminColor": "{LightBlue}",
+  "ReloadCommands": [
+    "css_raitotags_reload"
+  ],
+  "RankCommands": [
+    "css_rank"
+  ]
+}

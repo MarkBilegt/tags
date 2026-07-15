@@ -7,8 +7,14 @@ public abstract class Tags
     public class Tag
     {
         public string? Role { get; set; }
+        public string RankName { get; set; } = string.Empty;
+        public string AdminRole { get; set; } = string.Empty;
+        public int Xp { get; set; }
+        public string? NextRankName { get; set; }
+        public int? NextRankXp { get; set; }
         public string? ScoreTag { get; set; }
         public string? ChatTag { get; set; }
+        public string? ChatSuffix { get; set; }
         public string? ChatColor { get; set; }
         public string? NameColor { get; set; }
         public bool Visibility { get; set; } = true;
@@ -18,8 +24,15 @@ public abstract class Tags
         {
             return new Tag
             {
+                Role = Role,
+                RankName = RankName,
+                AdminRole = AdminRole,
+                Xp = Xp,
+                NextRankName = NextRankName,
+                NextRankXp = NextRankXp,
                 ScoreTag = ScoreTag,
                 ChatTag = ChatTag,
+                ChatSuffix = ChatSuffix,
                 ChatColor = ChatColor,
                 NameColor = NameColor,
                 Visibility = Visibility,
@@ -45,7 +58,8 @@ public abstract class Tags
         ScoreTag = 1 << 0,
         ChatTag = 1 << 1,
         NameColor = 1 << 2,
-        ChatColor = 1 << 3
+        ChatColor = 1 << 3,
+        ChatSuffix = 1 << 4
     }
 
     public enum TagPrePost

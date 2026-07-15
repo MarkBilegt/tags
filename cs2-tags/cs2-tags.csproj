@@ -1,28 +1,31 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<OutputPath>$(ProjectDir)..\BuildOutput\plugins\cs2-tags\</OutputPath>
+		<AssemblyName>RaitoTags</AssemblyName>
+		<RootNamespace>Tags</RootNamespace>
+		<OutputPath>$(ProjectDir)..\BuildOutput\plugins\RaitoTags\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+		<GenerateDependencyFile>true</GenerateDependencyFile>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CounterStrikeSharp.API" Version="1.0.333" />
+		<PackageReference Include="CounterStrikeSharp.API" Version="1.0.371">
+			<PrivateAssets>none</PrivateAssets>
+			<ExcludeAssets>runtime</ExcludeAssets>
+			<IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="MySqlConnector" Version="2.5.0" />
 		<ProjectReference Include="..\TagsApi\TagsApi.csproj" />
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="Build">
 		<ItemGroup>
-			<FilesToCopy Include="$(ProjectDir)..\cs2-tags-example.toml" />
-		</ItemGroup>
-		<ItemGroup>
-			<FilesToDelete Include="$(OutputPath)TagsApi.dll" />
-			<FilesToDelete Include="$(OutputPath)TagsApi.pdb" />
+			<FilesToCopy Include="$(ProjectDir)..\RaitoTags.example.json" />
 		</ItemGroup>
 
-		<Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(ProjectDir)..\BuildOutput\configs\plugins\cs2-tags\" />
-		<Delete Files="@(FilesToDelete)" />
+		<Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(ProjectDir)..\BuildOutput\configs\plugins\RaitoTags\" />
 	</Target>
 </Project>

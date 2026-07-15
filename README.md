@@ -1,48 +1,78 @@
-# cs2-tags
+# BETHECHAMP Tags
 
-A tag plugin designed to enhance your CS2 experience with a dynamic tagging system. Customise and manage player tags effortlessly for a more interactive and engaging game environment.
+BETHECHAMP Tags is the in-game presentation layer for the BETHECHAMP CS2 platform. It is based on the original [cs2-tags](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags) plugin by schwarper and retains its public capability API.
 
-If you want to donate or need a help about plugin, you can contact me in discord private/server
+The BETHECHAMP fork replaces static SteamID, group, and permission tag rules with identities from the shared MySQL database:
 
-Discord nickname: schwarper
+- Chat: `[Rank] player name [Admin Role]`
+- Scoreboard clan field: rank only
+- Admin roles: `OWNER`, `MANAGER`, `HEAD ADMIN`, `VIP`, and `ADMIN`
+- Emergency fallback: CounterStrikeSharp root admins display as `OWNER`
+- Cache: asynchronous refresh with a configurable 15-second default
 
-Discord link : [Discord server](https://discord.gg/4zQfUzjk36)
+Clan tags are intentionally excluded until the clan system is implemented.
+
+## Ranking rules
+
+XP is recorded only during a real live MatchZy match. Warmup, knife rounds, practice, dry runs, test matches, bots, HLTV, and coaches are excluded.
+
+| Event | XP |
+| --- | ---: |
+| Enemy kill | +5 |
+| Death | -5 |
+| Round win | +2 |
+| Round loss | -2 |
+| Assist | +1 |
+| Round MVP | +3 |
+
+XP cannot fall below zero.
+
+| Rank | Minimum XP |
+| --- | ---: |
+| Байлдагч | 0 |
+| Ахлах  | 150 |
+| Дэд түрүүч | 400 |
+| Түрүүч | 750 |
+| Ахлах түрүүч | 1,200 |
+| Дэд ахлагч | 1,800 |
+| Ахлагч | 2,500 |
+| Ахлах ахлагч | 3,300 |
+| Сургагч ахлагч | 4,200 |
+| Тэргүүн ахлагч | 5,200 |
+| Дэслэгч | 6,400 |
+| Ахлах дэслэгч | 7,800 |
+| Ахмад | 9,400 |
+| Хошууч | 11,200 |
+| Дэд хурандаа | 13,200 |
+| Хурандаа | 15,400 |
+| Бригадын генерал | 17,800 |
+| Хошууч генерал | 20,500 |
+| Дэслэгч генерал | 24,500 |
+| Генерал | 30,000 |
+
+## Requirements
+
+- CounterStrikeSharp `1.0.371` or newer
+- .NET 10 server runtime
+- MySQL schema managed by `cs2-website/prisma/migrations`
+- Shared database configuration at `csgo/cfg/MatchZy/database.json`
+
+## Commands
+
+- `!rank` or `css_rank`: show current XP, rank, and next promotion
+- `css_raitotags_reload`: reload configuration and cached identities; requires `@css/root`
+
+## Build
+
+```powershell
+dotnet build .\cs2-tags.sln
+dotnet publish .\cs2-tags\cs2-tags.csproj -c Release
+```
+
+Deploy the contents of `BuildOutput/plugins/RaitoTags` to the matching CounterStrikeSharp plugin folder. The generated example configuration belongs in `addons/counterstrikesharp/configs/plugins/RaitoTags`.
 
 ## Credits
 
-[Hextags plugin for CSGO](https://github.com/Hexer10/HexTags)
-
-[@daffyyyy](https://github.com/daffyyyy/)
-
-[@Yarukon](https://github.com/Yarukon)
-
-## Colors
-**Please do not use Default, use White instead**.
-```
-White
-TeamColor
-DarkRed
-Green
-LightYellow
-LightBlue
-Olive
-Lime
-Red
-LightPurple
-Purple
-Grey
-Yellow
-Gold
-Silver
-Blue
-DarkBlue
-BlueGrey
-Magenta
-LightRed
-Orange
-```
-
-## Screenshots
-![tag1](https://github.com/user-attachments/assets/93a333b4-55e0-4582-8f09-8ec3010724d3)
-
-![tag2](https://github.com/user-attachments/assets/9066cb2f-2b6d-4268-9db3-b824de28d05e)
+- [schwarper/cs2-tags archive](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags)
+- [HexTags](https://github.com/Hexer10/HexTags)
+- daffyyyy and Yarukon for contributions to the upstream project
