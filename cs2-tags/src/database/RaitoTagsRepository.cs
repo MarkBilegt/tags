@@ -5,12 +5,15 @@ namespace Tags;
 
 internal sealed record RaitoIdentity(
     int Xp,
+    int Kills,
+    int Deaths,
     string RankName,
     string? NextRankName,
     int? NextRankXp,
-    string AdminRole)
+    string AdminRole,
+    string? ClanTag)
 {
-    public static readonly RaitoIdentity Default = new(0, "Байлдагч", "Ахлах байлдагч", 150, "USER");
+    public static readonly RaitoIdentity Default = new(0, 0, 0, "Байлдагч", "Ахлах байлдагч", 150, "USER", null);
 }
 
 internal sealed class RaitoTagsRepository
@@ -61,13 +64,18 @@ internal sealed class RaitoTagsRepository
         using var command = new MySqlCommand("""
             SELECT
                 COALESCE(progress.`xp`, 0) AS `xp`,
+                COALESCE(progress.`kills`, 0) AS `kills`,
+                COALESCE(progress.`deaths`, 0) AS `deaths`,
                 COALESCE(currentRank.`name`, 'Байлдагч') AS `rankName`,
                 nextRank.`name` AS `nextRankName`,
                 nextRank.`minXp` AS `nextRankXp`,
-                COALESCE(user.`role`, 'USER') AS `adminRole`
+                COALESCE(user.`role`, 'USER') AS `adminRole`,
+                clan.`tag` AS `clanTag`
             FROM (SELECT @steamId64 AS `steamId64`) identity
             LEFT JOIN `PlayerProgress` progress ON progress.`steamId64` = identity.`steamId64`
             LEFT JOIN `User` user ON user.`steamId64` = identity.`steamId64`
+            LEFT JOIN `ClanMember` clanMember ON clanMember.`userId` = user.`id`
+            LEFT JOIN `Clan` clan ON clan.`id` = clanMember.`clanId`
             LEFT JOIN `RankDefinition` currentRank ON currentRank.`minXp` = (
                 SELECT MAX(candidate.`minXp`)
                 FROM `RankDefinition` candidate
@@ -87,10 +95,13 @@ internal sealed class RaitoTagsRepository
 
         return new RaitoIdentity(
             reader.GetInt32(0),
-            reader.IsDBNull(1) ? RaitoIdentity.Default.RankName : reader.GetString(1),
-            reader.IsDBNull(2) ? null : reader.GetString(2),
-            reader.IsDBNull(3) ? null : reader.GetInt32(3),
-            reader.IsDBNull(4) ? "USER" : reader.GetString(4).ToUpperInvariant());
+            reader.GetInt32(1),
+            reader.GetInt32(2),
+            reader.IsDBNull(3) ? RaitoIdentity.Default.RankName : reader.GetString(3),
+            reader.IsDBNull(4) ? null : reader.GetString(4),
+            reader.IsDBNull(5) ? null : reader.GetInt32(5),
+            reader.IsDBNull(6) ? "USER" : reader.GetString(6).ToUpperInvariant(),
+            reader.IsDBNull(7) ? null : reader.GetString(7).ToUpperInvariant());
     }
 
     private MySqlConnection OpenConnection()

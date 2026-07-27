@@ -6,6 +6,7 @@ public sealed class Config : BasePluginConfig
 {
     public int CacheSeconds { get; set; } = 15;
     public string DatabaseConfigPath { get; set; } = "csgo/cfg/MatchZy/database.json";
+    public string ClanColor { get; set; } = "{LightBlue}";
     public string RankColor { get; set; } = "{Gold}";
     public string MessageColor { get; set; } = "{White}";
     public string DeadPrefix { get; set; } = "{Grey}*DEAD* ";

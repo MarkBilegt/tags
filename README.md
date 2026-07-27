@@ -4,13 +4,15 @@ BETHECHAMP Tags is the in-game presentation layer for the BETHECHAMP CS2 platfor
 
 The BETHECHAMP fork replaces static SteamID, group, and permission tag rules with identities from the shared MySQL database:
 
-- Chat: `[Rank] player name [Admin Role]`
-- Scoreboard clan field: rank only
+- Chat: `[TAG] Rank player name [Admin Role]`
+- Scoreboard clan field: `[TAG] Rank`
 - Admin roles: `OWNER`, `MANAGER`, `HEAD ADMIN`, `VIP`, and `ADMIN`
 - Emergency fallback: CounterStrikeSharp root admins display as `OWNER`
 - Cache: asynchronous refresh with a configurable 15-second default
 
-Clan tags are intentionally excluded until the clan system is implemented.
+Players without a clan keep the shorter `Rank player name [Admin Role]` format.
+Clan membership and tag changes refresh from the shared database cache within
+the configured cache interval.
 
 ## Ranking rules
 
@@ -59,7 +61,7 @@ XP cannot fall below zero.
 
 ## Commands
 
-- `!rank` or `css_rank`: show current XP, rank, and next promotion
+- `!rank` or `css_rank`: show player name, rank, lifetime ranked kills, deaths, K.D, XP, and next promotion
 - `css_raitotags_reload`: reload configuration and cached identities; requires `@css/root`
 
 ## Build

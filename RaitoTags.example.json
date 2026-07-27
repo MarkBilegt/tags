@@ -2,6 +2,7 @@
   "Version": 1,
   "CacheSeconds": 15,
   "DatabaseConfigPath": "csgo/cfg/MatchZy/database.json",
+  "ClanColor": "{LightBlue}",
   "RankColor": "{Gold}",
   "MessageColor": "{White}",
   "DeadPrefix": "{Grey}*DEAD* ",

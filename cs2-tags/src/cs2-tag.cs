@@ -19,12 +19,12 @@ namespace Tags;
 [MinimumApiVersion(371)]
 public sealed class Tags : BasePlugin, IPluginConfig<Config>
 {
-    private sealed record CachedTag(Tag Tag, DateTime ExpiresAtUtc);
+    private sealed record CachedTag(Tag Tag, int Kills, int Deaths, DateTime ExpiresAtUtc);
 
     public override string ModuleName => "BETHECHAMP Tags";
-    public override string ModuleVersion => "2.0.0";
+    public override string ModuleVersion => "2.1.1";
     public override string ModuleAuthor => "BETHECHAMP, based on cs2-tags by schwarper";
-    public override string ModuleDescription => "Database-backed BETHECHAMP rank and admin tags.";
+    public override string ModuleDescription => "Database-backed BETHECHAMP clan, rank, and admin tags.";
 
     public static Tags Instance { get; private set; } = null!;
     public static TagsAPI Api { get; } = new();
@@ -136,7 +136,15 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         string progress = tag.NextRankXp is int nextXp && !string.IsNullOrWhiteSpace(tag.NextRankName)
             ? $"{tag.Xp:N0}/{nextXp:N0} XP to {tag.NextRankName}"
             : $"{tag.Xp:N0} XP - maximum rank";
-        info.ReplyToCommand($"[BETHECHAMP] Rank: {tag.RankName} | {progress}");
+
+        CachedTag cached = playerTags[player!.SteamID];
+        int kills = Math.Max(0, cached.Kills);
+        int deaths = Math.Max(0, cached.Deaths);
+        double killDeathRatio = deaths == 0 ? kills : (double)kills / deaths;
+        string playerName = TagText.Sanitize(player.PlayerName);
+
+        info.ReplyToCommand($"[{ChatColors.Green}BETHECHAMP{ChatColors.White}] Name: {ChatColors.Green}{playerName}{ChatColors.White} | Rank: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
+        info.ReplyToCommand($"[{ChatColors.Green}BETHECHAMP{ChatColors.White}] Kills: {ChatColors.Green}{kills}{ChatColors.White} | Deaths: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
         QueueIdentityRefresh(player!, true);
     }
 
@@ -235,7 +243,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
         string bootstrapRole = ResolveBootstrapRole(player, "USER");
         Tag fallback = BuildTag(RaitoIdentity.Default, bootstrapRole);
-        playerTags[player.SteamID] = new CachedTag(fallback, DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
+        playerTags[player.SteamID] = new CachedTag(fallback, 0, 0, DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
         QueueIdentityRefresh(player, false);
         return fallback;
     }
@@ -283,7 +291,11 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
                 string adminRole = ResolveBootstrapRole(currentPlayer, identity.AdminRole);
                 Tag tag = BuildTag(identity, adminRole);
-                playerTags[steamId] = new CachedTag(tag, DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
+                playerTags[steamId] = new CachedTag(
+                    tag,
+                    Math.Max(0, identity.Kills),
+                    Math.Max(0, identity.Deaths),
+                    DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
                 ApplyScoreboardRank(currentPlayer, tag);
                 Api.TagsUpdatedPost(currentPlayer, tag);
             });
@@ -301,14 +313,43 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
             Xp = Math.Max(0, identity.Xp),
             NextRankName = identity.NextRankName,
             NextRankXp = identity.NextRankXp,
-            ScoreTag = identity.RankName,
-            ChatTag = $"{Config.RankColor}[{identity.RankName}] ",
+            ScoreTag = BuildScoreTag(identity.ClanTag, identity.RankName),
+            ChatTag = BuildChatTag(identity.ClanTag, identity.RankName),
             ChatSuffix = BuildAdminTag(normalizedRole),
             NameColor = "{TeamColor}",
             ChatColor = Config.MessageColor,
             Visibility = true,
             ChatSound = true
         };
+    }
+
+    private string BuildChatTag(string? clanTag, string rankName)
+    {
+        string normalizedClanTag = NormalizeClanTag(clanTag);
+        string clanPrefix = string.IsNullOrEmpty(normalizedClanTag)
+            ? string.Empty
+            : $"{Config.ClanColor}[{normalizedClanTag}] ";
+        return $"{clanPrefix}{Config.RankColor}{rankName} ";
+    }
+
+    private static string BuildScoreTag(string? clanTag, string rankName)
+    {
+        string normalizedClanTag = NormalizeClanTag(clanTag);
+        return string.IsNullOrEmpty(normalizedClanTag)
+            ? rankName
+            : $"[{normalizedClanTag}] {rankName}";
+    }
+
+    private static string NormalizeClanTag(string? clanTag)
+    {
+        if (string.IsNullOrWhiteSpace(clanTag)) return string.Empty;
+        return new string(
+            clanTag
+                .Trim()
+                .ToUpperInvariant()
+                .Where(char.IsAsciiLetterOrDigit)
+                .Take(6)
+                .ToArray());
     }
 
     private string BuildAdminTag(string role) => role switch
