@@ -1,8 +1,8 @@
-# BETHECHAMP Tags
+# REIGN Tags
 
-BETHECHAMP Tags is the in-game presentation layer for the BETHECHAMP CS2 platform. It is based on the original [cs2-tags](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags) plugin by schwarper and retains its public capability API.
+REIGN Tags is the in-game presentation layer for the REIGN CS2 platform. It is based on the original [cs2-tags](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags) plugin by schwarper and retains its public capability API.
 
-The BETHECHAMP fork replaces static SteamID, group, and permission tag rules with identities from the shared MySQL database:
+The REIGN fork replaces static SteamID, group, and permission tag rules with identities from the shared MySQL database:
 
 - Chat: `[TAG] Rank player name [Admin Role]`
 - Scoreboard clan field: `[TAG] Rank`

@@ -29,7 +29,7 @@ internal sealed class RaitoTagsRepository
 
         if (!string.Equals(config.DatabaseType, "MySQL", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("BETHECHAMP Tags requires DatabaseType=MySQL.");
+            throw new InvalidOperationException("REIGN Tags requires DatabaseType=MySQL.");
         }
 
         if (string.IsNullOrWhiteSpace(config.MySqlHost)

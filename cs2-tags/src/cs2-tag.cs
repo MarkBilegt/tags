@@ -21,10 +21,10 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 {
     private sealed record CachedTag(Tag Tag, int Kills, int Deaths, DateTime ExpiresAtUtc);
 
-    public override string ModuleName => "BETHECHAMP Tags";
+    public override string ModuleName => "REIGN Tags";
     public override string ModuleVersion => "2.1.1";
-    public override string ModuleAuthor => "BETHECHAMP, based on cs2-tags by schwarper";
-    public override string ModuleDescription => "Database-backed BETHECHAMP clan, rank, and admin tags.";
+    public override string ModuleAuthor => "REIGN, based on cs2-tags by schwarper";
+    public override string ModuleDescription => "Database-backed REIGN clan, rank, and admin tags.";
 
     public static Tags Instance { get; private set; } = null!;
     public static TagsAPI Api { get; } = new();
@@ -44,12 +44,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
         foreach (string command in Config.ReloadCommands.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            AddCommand(command, "Reload BETHECHAMP tags", CommandTagsReload);
+            AddCommand(command, "Reload REIGN tags", CommandTagsReload);
         }
 
         foreach (string command in Config.RankCommands.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            AddCommand(command, "Show your BETHECHAMP rank", CommandRank);
+            AddCommand(command, "Show your REIGN rank", CommandRank);
         }
 
         HookUserMessage((int)EBaseUserMessages.UM_SayText2, OnMessage, HookMode.Pre);
@@ -88,12 +88,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         try
         {
             repository = new RaitoTagsRepository(databaseConfigPath);
-            Logger.LogInformation("BETHECHAMP Tags connected to the shared MySQL database.");
+            Logger.LogInformation("REIGN Tags connected to the shared MySQL database.");
         }
         catch (Exception ex)
         {
             repository = null;
-            Logger.LogError(ex, "BETHECHAMP Tags could not open the shared database; rank zero and bootstrap permissions will be used.");
+            Logger.LogError(ex, "REIGN Tags could not open the shared database; rank zero and bootstrap permissions will be used.");
         }
     }
 
@@ -108,7 +108,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
     {
         if (player is not null && !AdminManager.PlayerHasPermissions(new SteamID(player.SteamID), "@css/root"))
         {
-            info.ReplyToCommand("[BETHECHAMP] You do not have permission to reload tags.");
+            info.ReplyToCommand("[REIGN] You do not have permission to reload tags.");
             return;
         }
 
@@ -118,12 +118,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
             Config.Validate();
             InitializeRepository();
             ReloadTags();
-            info.ReplyToCommand("[BETHECHAMP] Tags reloaded.");
+            info.ReplyToCommand("[REIGN] Tags reloaded.");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "BETHECHAMP Tags reload failed.");
-            info.ReplyToCommand("[BETHECHAMP] Tag reload failed. Check the server console.");
+            Logger.LogError(ex, "REIGN Tags reload failed.");
+            info.ReplyToCommand("[REIGN] Tag reload failed. Check the server console.");
         }
     }
 
@@ -143,8 +143,8 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         double killDeathRatio = deaths == 0 ? kills : (double)kills / deaths;
         string playerName = TagText.Sanitize(player.PlayerName);
 
-        info.ReplyToCommand($"[{ChatColors.Green}BETHECHAMP{ChatColors.White}] Name: {ChatColors.Green}{playerName}{ChatColors.White} | Rank: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
-        info.ReplyToCommand($"[{ChatColors.Green}BETHECHAMP{ChatColors.White}] Kills: {ChatColors.Green}{kills}{ChatColors.White} | Deaths: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
+        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Name: {ChatColors.Green}{playerName}{ChatColors.White} | Rank: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
+        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Kills: {ChatColors.Green}{kills}{ChatColors.White} | Deaths: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
         QueueIdentityRefresh(player!, true);
     }
 
@@ -278,7 +278,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
             if (!task.IsCompletedSuccessfully)
             {
-                Logger.LogWarning(task.Exception?.GetBaseException(), "Could not refresh BETHECHAMP tags for SteamID {SteamId}.", steamId);
+                Logger.LogWarning(task.Exception?.GetBaseException(), "Could not refresh REIGN tags for SteamID {SteamId}.", steamId);
                 return;
             }
 
