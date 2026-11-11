@@ -355,8 +355,11 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
     private string BuildAdminTag(string role) => role switch
     {
         "OWNER" => $" {Config.OwnerColor}[OWNER]",
+        "CO_OWNER" => $" {Config.CoOwnerColor}[CO-OWNER]",
         "MANAGER" => $" {Config.ManagerColor}[MANAGER]",
-        "HEAD_ADMIN" => $" {Config.HeadAdminColor}[HEAD ADMIN]",
+        "MODERATOR" => $" {Config.ModeratorColor}[MOD]",
+        "HEAD_ADMIN" => $" {Config.HeadAdminColor}[MOD]",
+        "BOSS" => $" {Config.BossColor}[BOSS]",
         "VIP" => $" {Config.VipColor}[VIP]",
         "ADMIN" => $" {Config.AdminColor}[ADMIN]",
         _ => string.Empty

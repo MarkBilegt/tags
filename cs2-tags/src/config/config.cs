@@ -14,7 +14,10 @@ public sealed class Config : BasePluginConfig
     public string TerroristPrefix { get; set; } = "{Gold}(T) ";
     public string CounterTerroristPrefix { get; set; } = "{LightBlue}(CT) ";
     public string OwnerColor { get; set; } = "{Red}";
+    public string CoOwnerColor { get; set; } = "{LightRed}";
     public string ManagerColor { get; set; } = "{Gold}";
+    public string ModeratorColor { get; set; } = "{Purple}";
+    public string BossColor { get; set; } = "{Orange}";
     public string HeadAdminColor { get; set; } = "{Purple}";
     public string VipColor { get; set; } = "{Lime}";
     public string AdminColor { get; set; } = "{LightBlue}";
