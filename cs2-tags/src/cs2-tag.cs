@@ -108,7 +108,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
     {
         if (player is not null && !AdminManager.PlayerHasPermissions(new SteamID(player.SteamID), "@css/root"))
         {
-            info.ReplyToCommand("[REIGN] You do not have permission to reload tags.");
+            info.ReplyToCommand("[REIGN] Танд tag-уудыг дахин ачаалах эрх алга.");
             return;
         }
 
@@ -118,12 +118,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
             Config.Validate();
             InitializeRepository();
             ReloadTags();
-            info.ReplyToCommand("[REIGN] Tags reloaded.");
+            info.ReplyToCommand("[REIGN] Tag-ууд дахин ачаалагдлаа.");
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "REIGN Tags reload failed.");
-            info.ReplyToCommand("[REIGN] Tag reload failed. Check the server console.");
+            info.ReplyToCommand("[REIGN] Tag дахин ачаалж чадсангүй. Серверийн консолыг шалгана уу.");
         }
     }
 
@@ -134,8 +134,8 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
         Tag tag = GetOrCreateTag(player!);
         string progress = tag.NextRankXp is int nextXp && !string.IsNullOrWhiteSpace(tag.NextRankName)
-            ? $"{tag.Xp:N0}/{nextXp:N0} XP to {tag.NextRankName}"
-            : $"{tag.Xp:N0} XP - maximum rank";
+            ? $"{tag.NextRankName} хүртэл {tag.Xp:N0}/{nextXp:N0} XP"
+            : $"{tag.Xp:N0} XP - дээд цол";
 
         CachedTag cached = playerTags[player!.SteamID];
         int kills = Math.Max(0, cached.Kills);
@@ -143,8 +143,8 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         double killDeathRatio = deaths == 0 ? kills : (double)kills / deaths;
         string playerName = TagText.Sanitize(player.PlayerName);
 
-        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Name: {ChatColors.Green}{playerName}{ChatColors.White} | Rank: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
-        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Kills: {ChatColors.Green}{kills}{ChatColors.White} | Deaths: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
+        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Нэр: {ChatColors.Green}{playerName}{ChatColors.White} | Цол: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
+        info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Алсан: {ChatColors.Green}{kills}{ChatColors.White} | Үхсэн: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
         QueueIdentityRefresh(player!, true);
     }
 
