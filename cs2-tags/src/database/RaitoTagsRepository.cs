@@ -69,7 +69,7 @@ internal sealed class RaitoTagsRepository
                 COALESCE(currentRank.`name`, 'Байлдагч') AS `rankName`,
                 nextRank.`name` AS `nextRankName`,
                 nextRank.`minXp` AS `nextRankXp`,
-                COALESCE(user.`role`, 'USER') AS `adminRole`,
+                CASE WHEN user.`roleExpiresAt` IS NOT NULL AND user.`roleExpiresAt` <= UTC_TIMESTAMP(3) THEN 'USER' ELSE COALESCE(user.`role`, 'USER') END AS `adminRole`,
                 clan.`tag` AS `clanTag`
             FROM (SELECT @steamId64 AS `steamId64`) identity
             LEFT JOIN `PlayerProgress` progress ON progress.`steamId64` = identity.`steamId64`

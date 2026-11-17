@@ -35,4 +35,12 @@ internal static partial class TagText
         Utilities.SetStateChanged(player, "CCSPlayerController", "m_szClan");
         new EventNextlevelChanged(false).FireEventToClient(player);
     }
+
+    public static void SetPlayerName(CCSPlayerController player, string name)
+    {
+        if (!player.IsValid || player.IsBot || player.IsHLTV || player.PlayerName == name) return;
+
+        player.PlayerName = name;
+        Utilities.SetStateChanged(player, "CCSPlayerController", "m_iszPlayerName");
+    }
 }

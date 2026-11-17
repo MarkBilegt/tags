@@ -67,6 +67,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         unloading = true;
         UnhookUserMessage((int)EBaseUserMessages.UM_SayText2, OnMessage, HookMode.Pre);
         RemoveCommandListener("css_admins_reload", OnAdminsReloaded, HookMode.Post);
+        foreach (CCSPlayerController player in Utilities.GetPlayers().Where(IsHumanPlayer))
+        {
+            if (scoreboardNames.TryGetValue(player.SteamID, out var names)) TagText.SetPlayerName(player, names.Original);
+        }
+
+        scoreboardNames.Clear();
         playerTags.Clear();
         refreshesInFlight.Clear();
         repository = null;
@@ -141,7 +147,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         int kills = Math.Max(0, cached.Kills);
         int deaths = Math.Max(0, cached.Deaths);
         double killDeathRatio = deaths == 0 ? kills : (double)kills / deaths;
-        string playerName = TagText.Sanitize(player.PlayerName);
+        string playerName = TagText.Sanitize(GetBaseName(player));
 
         info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Нэр: {ChatColors.Green}{playerName}{ChatColors.White} | Цол: {ChatColors.Green}{tag.RankName}{ChatColors.White}");
         info.ReplyToCommand($"[{ChatColors.Green}REIGN{ChatColors.White}] Алсан: {ChatColors.Green}{kills}{ChatColors.White} | Үхсэн: {ChatColors.Green}{deaths}{ChatColors.White} | K.D: {ChatColors.Green}{killDeathRatio:0.00}{ChatColors.White} | {progress}");
@@ -161,6 +167,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         if (@event.Userid is { } player && player.SteamID > 0)
         {
             playerTags.Remove(player.SteamID);
+            scoreboardNames.Remove(player.SteamID);
             refreshesInFlight.TryRemove(player.SteamID, out _);
         }
 
@@ -205,7 +212,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         {
             Player = player!,
             Tag = tag,
-            PlayerName = TagText.Sanitize(player!.PlayerName),
+            PlayerName = TagText.Sanitize(GetBaseName(player!)),
             Message = chatMessage,
             ChatSound = message.ReadBool("chat"),
             TeamMessage = teamMessage
@@ -243,7 +250,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
         string bootstrapRole = ResolveBootstrapRole(player, "USER");
         Tag fallback = BuildTag(RaitoIdentity.Default, bootstrapRole);
-        playerTags[player.SteamID] = new CachedTag(fallback, 0, 0, DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
+        playerTags[player.SteamID] = new CachedTag(fallback, 0, 0, DateTime.UtcNow.AddSeconds(Math.Clamp(Config.CacheSeconds, 1, 3)));
         QueueIdentityRefresh(player, false);
         return fallback;
     }
@@ -295,7 +302,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
                     tag,
                     Math.Max(0, identity.Kills),
                     Math.Max(0, identity.Deaths),
-                    DateTime.UtcNow.AddSeconds(Config.CacheSeconds));
+                    DateTime.UtcNow.AddSeconds(Math.Clamp(Config.CacheSeconds, 1, 3)));
                 ApplyScoreboardRank(currentPlayer, tag);
                 Api.TagsUpdatedPost(currentPlayer, tag);
             });
@@ -332,12 +339,12 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         return $"{clanPrefix}{Config.RankColor}{rankName} ";
     }
 
+    // Scoreboard clan field: only the clan tag. The rank is shown in the player name instead.
     private static string BuildScoreTag(string? clanTag, string rankName)
     {
         string normalizedClanTag = NormalizeClanTag(clanTag);
-        return string.IsNullOrEmpty(normalizedClanTag)
-            ? rankName
-            : $"[{normalizedClanTag}] {rankName}";
+        // No brackets: the CS2 scoreboard already wraps the clan field in [ ], so adding our own showed [[CHAMP]].
+        return normalizedClanTag;
     }
 
     private static string NormalizeClanTag(string? clanTag)
@@ -352,16 +359,18 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
                 .ToArray());
     }
 
+    // Every staff / paid rank tag looks the same: default-coloured brackets around a green label, e.g. [VIP] [BOSS] [MOD].
+    private static string RankLabel(string label) => $" {{Default}}[{{Green}}{label}{{Default}}]";
+
     private string BuildAdminTag(string role) => role switch
     {
-        "OWNER" => $" {Config.OwnerColor}[OWNER]",
-        "CO_OWNER" => $" {Config.CoOwnerColor}[CO-OWNER]",
-        "MANAGER" => $" {Config.ManagerColor}[MANAGER]",
-        "MODERATOR" => $" {Config.ModeratorColor}[MOD]",
-        "HEAD_ADMIN" => $" {Config.HeadAdminColor}[MOD]",
-        "BOSS" => $" {Config.BossColor}[BOSS]",
-        "VIP" => $" {Config.VipColor}[VIP]",
-        "ADMIN" => $" {Config.AdminColor}[ADMIN]",
+        "OWNER" => RankLabel("OWNER"),
+        "CO_OWNER" => RankLabel("CO-OWNER"),
+        "MANAGER" => RankLabel("MANAGER"),
+        "MODERATOR" or "HEAD_ADMIN" => RankLabel("MOD"),
+        "BOSS" => RankLabel("BOSS"),
+        "VIP" => RankLabel("VIP"),
+        "ADMIN" => RankLabel("ADMIN"),
         _ => string.Empty
     };
 
@@ -391,9 +400,30 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
     private static bool IsHumanPlayer(CCSPlayerController? player) =>
         player is { IsValid: true, IsBot: false, IsHLTV: false } && player.SteamID > 0;
 
-    private static void ApplyScoreboardRank(CCSPlayerController player, Tag tag)
+    // Original (undecorated) names, and the decorated name we last wrote, per player.
+    private readonly Dictionary<ulong, (string Original, string Decorated)> scoreboardNames = [];
+
+    private string GetBaseName(CCSPlayerController player)
     {
-        TagText.SetScoreboardRank(player, tag.Visibility ? tag.ScoreTag ?? tag.RankName : string.Empty);
+        string current = player.PlayerName;
+        if (scoreboardNames.TryGetValue(player.SteamID, out var names) && current == names.Decorated)
+        {
+            return names.Original;
+        }
+
+        return current;
+    }
+
+    private void ApplyScoreboardRank(CCSPlayerController player, Tag tag)
+    {
+        TagText.SetScoreboardRank(player, tag.Visibility ? tag.ScoreTag ?? string.Empty : string.Empty);
+
+        string baseName = GetBaseName(player);
+        string decorated = tag.Visibility && !string.IsNullOrWhiteSpace(tag.RankName)
+            ? $"{tag.RankName} {baseName}"
+            : baseName;
+        scoreboardNames[player.SteamID] = (baseName, decorated);
+        TagText.SetPlayerName(player, decorated);
     }
 
     internal void AddAttribute(CCSPlayerController player, TagType types, TagPrePost position, string value)
