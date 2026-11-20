@@ -8,6 +8,7 @@ public abstract class Tags
     {
         public string? Role { get; set; }
         public string RankName { get; set; } = string.Empty;
+        public int RankId { get; set; } = 1;
         public string AdminRole { get; set; } = string.Empty;
         public int Xp { get; set; }
         public string? NextRankName { get; set; }
@@ -26,6 +27,7 @@ public abstract class Tags
             {
                 Role = Role,
                 RankName = RankName,
+                RankId = RankId,
                 AdminRole = AdminRole,
                 Xp = Xp,
                 NextRankName = NextRankName,

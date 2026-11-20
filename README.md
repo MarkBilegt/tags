@@ -1,11 +1,11 @@
-# REIGN Tags
+﻿# REIGN Tags
 
 REIGN Tags is the in-game presentation layer for the REIGN CS2 platform. It is based on the original [cs2-tags](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags) plugin by schwarper and retains its public capability API.
 
 The REIGN fork replaces static SteamID, group, and permission tag rules with identities from the shared MySQL database:
 
-- Chat: `[TAG] Rank player name [Admin Role]`
-- Scoreboard clan field: `[TAG] Rank`
+- Chat: `[TAG] player name [Admin Role]` (the rank is never shown in chat)
+- Scoreboard: competitive rank icon (Silver 1 to The Global Elite) and the clan tag in the clan field
 - Admin roles: `OWNER`, `MANAGER`, `HEAD ADMIN`, `VIP`, and `ADMIN`
 - Emergency fallback: CounterStrikeSharp root admins display as `OWNER`
 - Cache: asynchronous refresh with a configurable 15-second default
@@ -31,26 +31,26 @@ XP cannot fall below zero.
 
 | Rank | Minimum XP |
 | --- | ---: |
-| Байлдагч | 0 |
-| Ахлах  | 150 |
-| Дэд түрүүч | 400 |
-| Түрүүч | 750 |
-| Ахлах түрүүч | 1,200 |
-| Дэд ахлагч | 1,800 |
-| Ахлагч | 2,500 |
-| Ахлах ахлагч | 3,300 |
-| Сургагч ахлагч | 4,200 |
-| Тэргүүн ахлагч | 5,200 |
-| Дэслэгч | 6,400 |
-| Ахлах дэслэгч | 7,800 |
-| Ахмад | 9,400 |
-| Хошууч | 11,200 |
-| Дэд хурандаа | 13,200 |
-| Хурандаа | 15,400 |
-| Бригадын генерал | 17,800 |
-| Хошууч генерал | 20,500 |
-| Дэслэгч генерал | 24,500 |
-| Генерал | 30,000 |
+| Silver 1 | 0 |
+| Silver 2 | 150 |
+| Silver 3 | 400 |
+| Silver 4 | 750 |
+| Silver Elite | 1,200 |
+| Silver Elite Master | 1,800 |
+| Gold Nova 1 | 2,500 |
+| Gold Nova 2 | 3,300 |
+| Gold Nova 3 | 4,300 |
+| Gold Nova Master | 5,500 |
+| Master Guardian 1 | 7,000 |
+| Master Guardian 2 | 8,800 |
+| Master Guardian Elite | 11,000 |
+| Distinguished Master Guardian | 13,500 |
+| Legendary Eagle | 16,500 |
+| Legendary Eagle Master | 20,000 |
+| Supreme Master First Class | 24,500 |
+| The Global Elite | 30,000 |
+
+The rank is shown on the scoreboard as the standard competitive rank icon.
 
 ## Requirements
 
@@ -78,3 +78,4 @@ Deploy the contents of `BuildOutput/plugins/RaitoTags` to the matching CounterSt
 - [schwarper/cs2-tags archive](https://github.com/CounterStrike2-Plugins-Archive/cs2-tags)
 - [HexTags](https://github.com/Hexer10/HexTags)
 - daffyyyy and Yarukon for contributions to the upstream project
+

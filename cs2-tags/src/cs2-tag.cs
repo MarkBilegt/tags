@@ -9,6 +9,7 @@ using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Extensions;
 using CounterStrikeSharp.API.Modules.UserMessages;
+using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 using Microsoft.Extensions.Logging;
 using TagsApi;
@@ -19,7 +20,9 @@ namespace Tags;
 [MinimumApiVersion(371)]
 public sealed class Tags : BasePlugin, IPluginConfig<Config>
 {
-    private sealed record CachedTag(Tag Tag, int Kills, int Deaths, DateTime ExpiresAtUtc);
+    // Provisional = placeholder shown while the database lookup for a joining player is still running.
+    // It must never be written to the scoreboard: the real rank arrives a moment later and the badge would flicker.
+    private sealed record CachedTag(Tag Tag, int Kills, int Deaths, DateTime ExpiresAtUtc, bool Provisional = false);
 
     public override string ModuleName => "REIGN Tags";
     public override string ModuleVersion => "2.1.1";
@@ -31,6 +34,9 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
     private readonly Dictionary<ulong, CachedTag> playerTags = [];
     private readonly ConcurrentDictionary<ulong, byte> refreshesInFlight = new();
+    // Clients that already received the "reveal ranks" message. It is sent once per client, to that client only:
+    // sending it to everyone every time any rank changed made every badge on the scoreboard flicker on each join.
+    private readonly HashSet<ulong> revealedClients = [];
     private RaitoTagsRepository? repository;
     private bool unloading;
 
@@ -53,6 +59,10 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         }
 
         HookUserMessage((int)EBaseUserMessages.UM_SayText2, OnMessage, HookMode.Pre);
+        // Community servers hide competitive rank badges unless the server reveals them; keep them applied and revealed.
+        // The game keeps rewriting these fields, so re-apply every tick (cheap: only writes when a value differs).
+        RegisterListener<Listeners.OnTick>(RefreshScoreboardRanks);
+        RegisterListener<Listeners.OnMapStart>(_ => revealedClients.Clear());
         AddCommandListener("css_admins_reload", OnAdminsReloaded, HookMode.Post);
         InitializeRepository();
 
@@ -73,6 +83,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         }
 
         scoreboardNames.Clear();
+        revealedClients.Clear();
         playerTags.Clear();
         refreshesInFlight.Clear();
         repository = null;
@@ -101,6 +112,33 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
             repository = null;
             Logger.LogError(ex, "REIGN Tags could not open the shared database; rank zero and bootstrap permissions will be used.");
         }
+    }
+
+    private void RefreshScoreboardRanks()
+    {
+        if (unloading) return;
+        foreach (CCSPlayerController player in Utilities.GetPlayers().Where(IsHumanPlayer))
+        {
+            if (!playerTags.TryGetValue(player.SteamID, out CachedTag? cached) || cached.Provisional) continue;
+
+            // Writes silently when the game has overwritten the value; nothing is broadcast from here.
+            TagText.SetCompetitiveRank(player, cached.Tag.Visibility ? cached.Tag.RankId : 0);
+            EnsureRevealed(player);
+        }
+    }
+
+    /// <summary>Sends the reveal message to this client once, plus one repeat in case the first arrives too early.</summary>
+    private void EnsureRevealed(CCSPlayerController player)
+    {
+        if (!revealedClients.Add(player.SteamID)) return;
+
+        TagText.RevealRanks(player);
+        ulong steamId = player.SteamID;
+        AddTimer(2.0f, () =>
+        {
+            CCSPlayerController? current = Utilities.GetPlayers().FirstOrDefault(p => IsHumanPlayer(p) && p.SteamID == steamId);
+            if (current is not null) TagText.RevealRanks(current);
+        }, TimerFlags.STOP_ON_MAPCHANGE);
     }
 
     private HookResult OnAdminsReloaded(CCSPlayerController? player, CommandInfo info)
@@ -167,6 +205,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         if (@event.Userid is { } player && player.SteamID > 0)
         {
             playerTags.Remove(player.SteamID);
+            revealedClients.Remove(player.SteamID);
             scoreboardNames.Remove(player.SteamID);
             refreshesInFlight.TryRemove(player.SteamID, out _);
         }
@@ -250,7 +289,9 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
         string bootstrapRole = ResolveBootstrapRole(player, "USER");
         Tag fallback = BuildTag(RaitoIdentity.Default, bootstrapRole);
-        playerTags[player.SteamID] = new CachedTag(fallback, 0, 0, DateTime.UtcNow.AddSeconds(Math.Clamp(Config.CacheSeconds, 1, 3)));
+        // Provisional only while a database lookup can still replace it; without a database the fallback is final.
+        playerTags[player.SteamID] = new CachedTag(fallback, 0, 0,
+            DateTime.UtcNow.AddSeconds(Math.Clamp(Config.CacheSeconds, 1, 3)), Provisional: repository is not null);
         QueueIdentityRefresh(player, false);
         return fallback;
     }
@@ -316,6 +357,7 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         {
             Role = normalizedRole,
             RankName = identity.RankName,
+            RankId = identity.RankId,
             AdminRole = normalizedRole,
             Xp = Math.Max(0, identity.Xp),
             NextRankName = identity.NextRankName,
@@ -336,7 +378,8 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
         string clanPrefix = string.IsNullOrEmpty(normalizedClanTag)
             ? string.Empty
             : $"{Config.ClanColor}[{normalizedClanTag}] ";
-        return $"{clanPrefix}{Config.RankColor}{rankName} ";
+        // The rank is only shown as the scoreboard badge, never in chat.
+        return clanPrefix;
     }
 
     // Scoreboard clan field: only the clan tag. The rank is shown in the player name instead.
@@ -416,14 +459,22 @@ public sealed class Tags : BasePlugin, IPluginConfig<Config>
 
     private void ApplyScoreboardRank(CCSPlayerController player, Tag tag)
     {
+        // A joining player first has a placeholder tag (no rank, no clan). Writing it would blank the scoreboard
+        // entry for a moment before the real values land, which is the flicker. Wait for the database result.
+        if (playerTags.TryGetValue(player.SteamID, out CachedTag? current) && current.Provisional) return;
+
         TagText.SetScoreboardRank(player, tag.Visibility ? tag.ScoreTag ?? string.Empty : string.Empty);
 
-        string baseName = GetBaseName(player);
-        string decorated = tag.Visibility && !string.IsNullOrWhiteSpace(tag.RankName)
-            ? $"{tag.RankName} {baseName}"
-            : baseName;
-        scoreboardNames[player.SteamID] = (baseName, decorated);
-        TagText.SetPlayerName(player, decorated);
+        // Show the rank as a regular competitive rank icon (Silver 1 ... The Global Elite) on the scoreboard.
+        TagText.SetCompetitiveRank(player, tag.Visibility ? tag.RankId : 0);
+        EnsureRevealed(player);
+
+        // Older versions prefixed the rank name onto the player name; make sure that is undone.
+        if (scoreboardNames.TryGetValue(player.SteamID, out var names))
+        {
+            if (player.PlayerName == names.Decorated) TagText.SetPlayerName(player, names.Original);
+            scoreboardNames.Remove(player.SteamID);
+        }
     }
 
     internal void AddAttribute(CCSPlayerController player, TagType types, TagPrePost position, string value)

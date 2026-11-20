@@ -8,12 +8,13 @@ internal sealed record RaitoIdentity(
     int Kills,
     int Deaths,
     string RankName,
+    int RankId,
     string? NextRankName,
     int? NextRankXp,
     string AdminRole,
     string? ClanTag)
 {
-    public static readonly RaitoIdentity Default = new(0, 0, 0, "Байлдагч", "Ахлах байлдагч", 150, "USER", null);
+    public static readonly RaitoIdentity Default = new(0, 0, 0, "Silver 1", 1, "Silver 2", 150, "USER", null);
 }
 
 internal sealed class RaitoTagsRepository
@@ -66,7 +67,8 @@ internal sealed class RaitoTagsRepository
                 COALESCE(progress.`xp`, 0) AS `xp`,
                 COALESCE(progress.`kills`, 0) AS `kills`,
                 COALESCE(progress.`deaths`, 0) AS `deaths`,
-                COALESCE(currentRank.`name`, 'Байлдагч') AS `rankName`,
+                COALESCE(currentRank.`name`, 'Silver 1') AS `rankName`,
+                COALESCE(currentRank.`id`, 1) AS `rankId`,
                 nextRank.`name` AS `nextRankName`,
                 nextRank.`minXp` AS `nextRankXp`,
                 CASE WHEN user.`roleExpiresAt` IS NOT NULL AND user.`roleExpiresAt` <= UTC_TIMESTAMP(3) THEN 'USER' ELSE COALESCE(user.`role`, 'USER') END AS `adminRole`,
@@ -98,10 +100,11 @@ internal sealed class RaitoTagsRepository
             reader.GetInt32(1),
             reader.GetInt32(2),
             reader.IsDBNull(3) ? RaitoIdentity.Default.RankName : reader.GetString(3),
-            reader.IsDBNull(4) ? null : reader.GetString(4),
-            reader.IsDBNull(5) ? null : reader.GetInt32(5),
-            reader.IsDBNull(6) ? "USER" : reader.GetString(6).ToUpperInvariant(),
-            reader.IsDBNull(7) ? null : reader.GetString(7).ToUpperInvariant());
+            reader.IsDBNull(4) ? RaitoIdentity.Default.RankId : Math.Clamp(reader.GetInt32(4), 1, 18),
+            reader.IsDBNull(5) ? null : reader.GetString(5),
+            reader.IsDBNull(6) ? null : reader.GetInt32(6),
+            reader.IsDBNull(7) ? "USER" : reader.GetString(7).ToUpperInvariant(),
+            reader.IsDBNull(8) ? null : reader.GetString(8).ToUpperInvariant());
     }
 
     private MySqlConnection OpenConnection()
